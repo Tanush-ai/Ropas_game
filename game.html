@@ -1,0 +1,494 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Neon RPS Battle</title>
+    <style>
+        :root {
+            --bg-color: #0f172a;
+            --card-bg: rgba(30, 41, 59, 0.7);
+            --primary: #3b82f6;
+            --secondary: #64748b;
+            --accent: #f43f5e;
+            --text: #f8fafc;
+            --success: #22c55e;
+            --warning: #eab308;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+            background-image:
+                radial-gradient(circle at 10% 20%, rgba(59, 130, 246, 0.1) 0%, transparent 20%),
+                radial-gradient(circle at 90% 80%, rgba(244, 63, 94, 0.1) 0%, transparent 20%);
+        }
+
+        .container {
+            width: 90%;
+            max-width: 800px;
+            text-align: center;
+        }
+
+        /* Header & Scoreboard */
+        header {
+            margin-bottom: 2rem;
+            animation: fadeInDown 0.8s ease-out;
+        }
+
+        h1 {
+            font-size: 3rem;
+            font-weight: 800;
+            margin-bottom: 1rem;
+            background: linear-gradient(to right, #3b82f6, #f43f5e);
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+
+        .scoreboard {
+            display: flex;
+            justify-content: center;
+            gap: 2rem;
+            background: var(--card-bg);
+            padding: 1rem 2rem;
+            border-radius: 1rem;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        }
+
+        .score-box {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .score-label {
+            font-size: 0.875rem;
+            color: var(--secondary);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 0.25rem;
+        }
+
+        .score-value {
+            font-size: 2.5rem;
+            font-weight: 700;
+            font-variant-numeric: tabular-nums;
+        }
+
+        /* Game Area */
+        .game-area {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin: 3rem 0;
+            min-height: 200px;
+            position: relative;
+        }
+
+        .hand-container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            opacity: 0;
+            animation: fadeIn 1s ease-out forwards;
+        }
+
+        .hand-icon {
+            font-size: 8rem;
+            filter: drop-shadow(0 0 15px rgba(59, 130, 246, 0.3));
+            transition: transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+
+        .player-hand .hand-icon {
+            transform-origin: left center;
+        }
+
+        .computer-hand .hand-icon {
+            transform-origin: right center;
+        }
+
+        .vs-badge {
+            font-size: 1.5rem;
+            font-weight: 900;
+            color: var(--secondary);
+            opacity: 0.5;
+        }
+
+        /* Result Message */
+        .result-container {
+            height: 60px;
+            margin-bottom: 2rem;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .result-text {
+            font-size: 1.5rem;
+            font-weight: 600;
+            padding: 0.5rem 1.5rem;
+            border-radius: 2rem;
+            opacity: 0;
+            transform: translateY(20px);
+            transition: all 0.3s ease;
+        }
+
+        .result-text.show {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .win {
+            background: rgba(34, 197, 94, 0.2);
+            color: #4ade80;
+            border: 1px solid rgba(34, 197, 94, 0.3);
+        }
+
+        .lose {
+            background: rgba(244, 63, 94, 0.2);
+            color: #fb7185;
+            border: 1px solid rgba(244, 63, 94, 0.3);
+        }
+
+        .draw {
+            background: rgba(234, 179, 8, 0.2);
+            color: #facc15;
+            border: 1px solid rgba(234, 179, 8, 0.3);
+        }
+
+        /* Controls */
+        .controls {
+            display: flex;
+            justify-content: center;
+            gap: 1.5rem;
+            margin-top: 2rem;
+        }
+
+        .choice-btn {
+            background: var(--card-bg);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 50%;
+            width: 80px;
+            height: 80px;
+            cursor: pointer;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 2.5rem;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .choice-btn::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: radial-gradient(circle, rgba(255, 255, 255, 0.1) 0%, transparent 70%);
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+
+        .choice-btn:hover {
+            transform: translateY(-5px) scale(1.1);
+            border-color: var(--primary);
+            box-shadow: 0 0 20px rgba(59, 130, 246, 0.4);
+        }
+
+        .choice-btn:hover::before {
+            opacity: 1;
+        }
+
+        .choice-btn:active {
+            transform: scale(0.95);
+        }
+
+        .choice-btn[data-choice="rock"]:hover {
+            border-color: #f43f5e;
+            box-shadow: 0 0 20px rgba(244, 63, 94, 0.4);
+        }
+
+        .choice-btn[data-choice="paper"]:hover {
+            border-color: #3b82f6;
+            box-shadow: 0 0 20px rgba(59, 130, 246, 0.4);
+        }
+
+        .choice-btn[data-choice="scissors"]:hover {
+            border-color: #22c55e;
+            box-shadow: 0 0 20px rgba(34, 197, 94, 0.4);
+        }
+
+        /* Animations */
+        @keyframes fadeInDown {
+            from {
+                opacity: 0;
+                transform: translateY(-20px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+            }
+
+            to {
+                opacity: 1;
+            }
+        }
+
+        @keyframes shakePlayer {
+            0% {
+                transform: rotate(0deg) translateX(0);
+            }
+
+            25% {
+                transform: rotate(-20deg) translateX(-10px);
+            }
+
+            50% {
+                transform: rotate(0deg) translateX(0);
+            }
+
+            75% {
+                transform: rotate(-20deg) translateX(-10px);
+            }
+
+            100% {
+                transform: rotate(0deg) translateX(0);
+            }
+        }
+
+        @keyframes shakeComputer {
+            0% {
+                transform: rotate(0deg) translateX(0) scaleX(-1);
+            }
+
+            25% {
+                transform: rotate(-20deg) translateX(-10px) scaleX(-1);
+            }
+
+            50% {
+                transform: rotate(0deg) translateX(0) scaleX(-1);
+            }
+
+            75% {
+                transform: rotate(-20deg) translateX(-10px) scaleX(-1);
+            }
+
+            100% {
+                transform: rotate(0deg) translateX(0) scaleX(-1);
+            }
+        }
+
+        .shaking-player {
+            animation: shakePlayer 0.5s ease-in-out 3;
+        }
+
+        .shaking-computer {
+            animation: shakeComputer 0.5s ease-in-out 3;
+        }
+
+        /* Responsive */
+        @media (max-width: 600px) {
+            h1 {
+                font-size: 2rem;
+            }
+
+            .hand-icon {
+                font-size: 5rem;
+            }
+
+            .choice-btn {
+                width: 60px;
+                height: 60px;
+                font-size: 2rem;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <header>
+            <h1>RPS Arena</h1>
+            <div class="scoreboard">
+                <div class="score-box">
+                    <span class="score-label">Player</span>
+                    <span class="score-value" id="player-score">0</span>
+                </div>
+                <div class="score-box">
+                    <span class="score-label">Computer</span>
+                    <span class="score-value" id="computer-score">0</span>
+                </div>
+            </div>
+        </header>
+
+        <div class="game-area">
+            <div class="hand-container player-hand">
+                <div class="hand-icon" id="player-hand">✊</div>
+            </div>
+
+            <div class="vs-badge">VS</div>
+
+            <div class="hand-container computer-hand">
+                <div class="hand-icon" id="computer-hand" style="transform: scaleX(-1);">✊</div>
+            </div>
+        </div>
+
+        <div class="result-container">
+            <div class="result-text" id="result-text">Choose your weapon!</div>
+        </div>
+
+        <div class="controls">
+            <button class="choice-btn" data-choice="rock" title="Rock">✊</button>
+            <button class="choice-btn" data-choice="paper" title="Paper">✋</button>
+            <button class="choice-btn" data-choice="scissors" title="Scissors">✌️</button>
+        </div>
+    </div>
+
+    <script>
+        // Game State
+        const state = {
+            playerScore: 0,
+            computerScore: 0,
+            isAnimating: false
+        };
+
+        // DOM Elements
+        const elements = {
+            playerHand: document.getElementById('player-hand'),
+            computerHand: document.getElementById('computer-hand'),
+            playerScore: document.getElementById('player-score'),
+            computerScore: document.getElementById('computer-score'),
+            resultText: document.getElementById('result-text'),
+            buttons: document.querySelectorAll('.choice-btn')
+        };
+
+        // Game Logic
+        const choices = ['rock', 'paper', 'scissors'];
+        const icons = { rock: '✊', paper: '✋', scissors: '✌️' };
+
+        function getComputerChoice() {
+            return choices[Math.floor(Math.random() * choices.length)];
+        }
+
+        function getWinner(p, c) {
+            if (p === c) return 'draw';
+            if ((p === 'rock' && c === 'scissors') ||
+                (p === 'paper' && c === 'rock') ||
+                (p === 'scissors' && c === 'paper')) {
+                return 'player';
+            }
+            return 'computer';
+        }
+
+        function updateScore(winner) {
+            if (winner === 'player') {
+                state.playerScore++;
+                elements.playerScore.textContent = state.playerScore;
+                elements.playerScore.style.color = '#4ade80';
+                setTimeout(() => elements.playerScore.style.color = '', 500);
+            } else if (winner === 'computer') {
+                state.computerScore++;
+                elements.computerScore.textContent = state.computerScore;
+                elements.computerScore.style.color = '#fb7185';
+                setTimeout(() => elements.computerScore.style.color = '', 500);
+            }
+        }
+
+        function showResult(winner, pChoice, cChoice) {
+            elements.resultText.classList.remove('win', 'lose', 'draw', 'show');
+
+            // Trigger reflow
+            void elements.resultText.offsetWidth;
+
+            let text = '';
+            let className = '';
+
+            if (winner === 'player') {
+                text = `You Win! ${pChoice} beats ${cChoice}`;
+                className = 'win';
+            } else if (winner === 'computer') {
+                text = `You Lose! ${cChoice} beats ${pChoice}`;
+                className = 'lose';
+            } else {
+                text = "It's a Draw!";
+                className = 'draw';
+            }
+
+            elements.resultText.textContent = text;
+            elements.resultText.classList.add(className, 'show');
+        }
+
+        function playRound(playerChoice) {
+            if (state.isAnimating) return;
+            state.isAnimating = true;
+
+            // Reset hands to rock for animation
+            elements.playerHand.textContent = icons['rock'];
+            elements.computerHand.textContent = icons['rock'];
+            elements.resultText.classList.remove('show');
+
+            // Add shaking class
+            elements.playerHand.classList.add('shaking-player');
+            elements.computerHand.classList.add('shaking-computer');
+
+            // Animation duration (1.5s matches 3 shakes of 0.5s)
+            setTimeout(() => {
+                const computerChoice = getComputerChoice();
+                const winner = getWinner(playerChoice, computerChoice);
+
+                // Remove shaking class
+                elements.playerHand.classList.remove('shaking-player');
+                elements.computerHand.classList.remove('shaking-computer');
+
+                // Update icons
+                elements.playerHand.textContent = icons[playerChoice];
+                elements.computerHand.textContent = icons[computerChoice];
+
+                // Update UI
+                updateScore(winner);
+                showResult(winner, playerChoice, computerChoice);
+
+                state.isAnimating = false;
+            }, 1500);
+        }
+
+        // Event Listeners
+        elements.buttons.forEach(btn => {
+            btn.addEventListener('click', () => {
+                playRound(btn.dataset.choice);
+            });
+        });
+    </script>
+</body>
+
+</html>
